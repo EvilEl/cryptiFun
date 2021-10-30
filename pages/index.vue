@@ -3,7 +3,6 @@
     <div class="navigation">
       <Datapicker @confirmDates="confirmDates" v-model="dates" />
       <Tabs :tabsItems="cryptoCoin" @actionBtn="getCrypto" />
-      <Tabs :tabsItems="cryptoCoin" @actionBtn="getCrypto" />
     </div>
     <Chart :datasets="datasets" :labels="labels" v-if="loading" :labelCrypto="labelCrypto"></Chart>
   </div>
