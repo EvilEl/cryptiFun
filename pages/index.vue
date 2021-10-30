@@ -1,24 +1,21 @@
 <template>
   <div>
-    <Tabs :tabsItems="cryptoCoin" @actionBtn="getCrypto" />
-    <Chart
-      ref="chart"
-      v-if="loading"
-      :styles="styles"
-      :chartData="{labels:labels,datasets:datasets}"
-      :options="options"
-    ></Chart>
-    <Tooltip ref="tooltip" :options="options" :label="labelCrypto" />
+    <div class="navigation">
+      <Datapicker @confirmDates="confirmDates" v-model="dates" />
+      <Tabs :tabsItems="cryptoCoin" @actionBtn="getCrypto" />
+      <Tabs :tabsItems="cryptoCoin" @actionBtn="getCrypto" />
+    </div>
+    <Chart :datasets="datasets" :labels="labels" v-if="loading" :labelCrypto="labelCrypto"></Chart>
   </div>
 </template>
 
 <script>
 import { DateTime } from 'luxon'
-import Chart from '@/components/Chart'
-import Tooltip from '~/components/Tooltip.vue'
+import Chart from '@/components/Chart/Chart'
 import Tabs from '~/components/Tabs.vue'
+import Datapicker from '~/components/Datapicker.vue'
 export default {
-  components: { Chart, Tooltip, Tabs },
+  components: { Chart, Tabs, Datapicker },
   data() {
     return {
       DateTime,
@@ -27,26 +24,24 @@ export default {
         height: `300px`,
         marginLeft: '-20px',
       },
+      dates: [],
       loading: false,
       bitcon: [],
       labels: [],
       datasets: [],
-      options: {},
       cryptoCoin: [],
       currentIdCrypto: 'btc-bitcoin',
     }
   },
-  watch: {
-    datasets() {
-      this.options.scales.xAxes[0].afterBuildTicks = this.afterBuildTicks
-    },
-  },
+
   created() {
-    this.initOptions()
-    this.options.scales.xAxes[0].afterBuildTicks = this.afterBuildTicks
-    this.options.scales.yAxes[0].ticks.callback = this.yAfterBuildTicks
     this.initCryptoCoin()
     this.initCrypto()
+  },
+  watch: {
+    formadDates() {
+      this.initCrypto()
+    },
   },
   computed: {
     labelCrypto() {
@@ -56,73 +51,38 @@ export default {
       }
       return ''
     },
-  },
-  mounted() {},
-  methods: {
-    // настройки chart
-    initOptions() {
-      this.options = {
-        responsive: true,
-        maintainAspectRatio: false,
-        legend: {
-          display: false,
-        },
-        tooltips: {
-          intersect: false,
-          mode: 'index',
-          callbacks: {},
-          enabled: false,
-        },
-        hover: {
-          mode: 'index',
-          intersect: false,
-          animationDuration: 5,
-        },
-        elements: {
-          line: {
-            fill: true,
-            tension: 0.2,
-          },
-          point: {
-            hoverRadius: 2,
-          },
-        },
-        scales: {
-          xAxes: [
-            {
-              afterFit: (axis) => {
-                axis.paddingLeft = 70
-              },
-              gridLines: {
-                // рисует линию возле значений
-                drawTicks: false,
-                zeroLineColor: 'black',
-              },
-              ticks: {
-                maxRotation: 0,
-                padding: 10,
-                maxTicksLimit: 4,
-                beginAtZero: true,
-                callbacks: {},
-              },
-            },
-          ],
-
-          yAxes: [
-            {
-              gridLines: {
-                // рисует линию возле значений
-                drawTicks: false,
-              },
-              ticks: {
-                callback: {},
-                padding: 10,
-                maxTicksLimit: 6,
-              },
-            },
-          ],
-        },
+    interval() {
+      if (this.diffDays >= 16) {
+        return '1d'
       }
+      if (this.diffDays < 16) {
+        return '3h'
+      }
+      if (this.diffDays < 10) {
+        return '1h'
+      }
+      if (this.diffDays < 5) {
+        return '30m'
+      }
+      return '5m'
+    },
+    diffDays() {
+      const timeDiff = Math.abs(
+        new Date(this.formadDates[0]).getTime() -
+          new Date(this.formadDates[1]).getTime()
+      )
+      return Math.ceil(timeDiff / (1000 * 3600 * 24))
+    },
+    formadDates() {
+      return this.dates.map((item) => {
+        console.log(new Date(item).getTime() / 1000)
+        return item
+      })
+    },
+  },
+  methods: {
+    confirmDates(value) {
+      this.dates = value
     },
     // иницилизурем валюты
     async initCryptoCoin() {
@@ -140,16 +100,18 @@ export default {
     // иницилизурем график с криптой
     async initCrypto(name = 'btc-bitcoin') {
       this.loading = false
-
+      const prevDay = DateTime.now()
+      let prevD = prevDay.minus({ days: 1 })
+      console.log()
       const result = await this.$axios.$get(
         `https://api.coinpaprika.com/v1/tickers/${name}/historical`,
         {
           params: {
-            start: 1634759748,
-            end: 1635191748,
-            limit: 1000,
+            start: this.formadDates[0] || (prevD.ts / 1000).toFixed(),
+            end: this.formadDates[1],
+            limit: 5000,
             quote: 'usd',
-            interval: '5m',
+            interval: this.interval || '5m',
           },
           headers: {
             Accept: 'application/json',
@@ -178,18 +140,7 @@ export default {
       ]
       this.loading = true
     },
-    // формируем y ось
-    yAfterBuildTicks(ticks) {
-      return ticks + '$'
-    },
-    // формируем x ось
-    afterBuildTicks(axis, ticks) {
-      return ticks.map((item) => {
-        return `${new Date(item * 1000).getDate()}/${new Date(
-          item * 1000
-        ).getMonth()}`
-      })
-    },
+
     getCrypto(id) {
       this.currentIdCrypto = id
       this.initCrypto(id)
@@ -202,5 +153,8 @@ export default {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+.navigation {
+  display: flex;
 }
 </style>

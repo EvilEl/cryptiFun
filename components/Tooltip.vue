@@ -39,6 +39,13 @@ export default {
     }
   },
   computed: {
+    labelCrypto() {
+      const a = this.cryptoCoin.find((item) => item.id === this.currentIdCrypto)
+      if (a) {
+        return a.name
+      }
+      return ''
+    },
     time() {
       const d = new Date(this.dataPoints[0].xLabel * 1000)
       const arrD = [d.getHours(), d.getMinutes(), d.getSeconds()]

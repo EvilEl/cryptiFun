@@ -4,6 +4,7 @@ module.exports = {
     browser: true,
     node: true
   },
+  "parser": "vue-eslint-parser",
   parserOptions: {
     parser: '@babel/eslint-parser',
     requireConfigFile: false
@@ -11,10 +12,18 @@ module.exports = {
   extends: [
     '@nuxtjs',
     'plugin:nuxt/recommended',
-    'prettier'
+    'prettier',
+    'eslint:recommended',
   ],
   plugins: [
   ],
   // add your custom rules here
-  rules: {}
+  rules: {
+    'eqeqeq': 1,
+    'curly': 1,
+    'quotes': 1,
+    "no-unused-vars": "warn",
+    "no-undef": "warn",
+    'prefer-const': 1,
+  }
 }
