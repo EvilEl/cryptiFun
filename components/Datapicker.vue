@@ -1,12 +1,28 @@
 <template >
   <div>
-    <DatePicker confirm v-model="dates" type="date" range @confirm="confirmDates" />
+    <DatePicker
+      :disabled-date="disabledDate"
+      v-model="dates"
+      type="date"
+      range
+      value-type="timestamp"
+      @clear="clear"
+    />
   </div>
 </template>
 <script>
 import DatePicker from 'vue2-datepicker'
 import 'vue2-datepicker/index.css'
 import 'vue2-datepicker/locale/ru'
+
+// блокируем при двойном клике на текущей месяц переключение на следующей
+const { updateCalendars } = DatePicker.CalendarRange.methods
+DatePicker.CalendarRange.methods.updateCalendars = function (
+  calendars,
+  adjustIndex = 0
+) {
+  updateCalendars.call(this, calendars, adjustIndex)
+}
 
 export default {
   components: { DatePicker },
@@ -19,6 +35,7 @@ export default {
   data() {
     return {
       date: '',
+      pickDate: null,
     }
   },
   computed: {
@@ -27,13 +44,24 @@ export default {
         return this.value
       },
       set(dates) {
+        if (dates[0] === null) {
+          dates = []
+        }
         this.$emit('input', dates)
       },
     },
+    defaultValue() {
+      const previous = new Date()
+      previous.setMonth(previous.getMonth() - 1)
+      return [previous, new Date()]
+    },
   },
   methods: {
-    confirmDates(value) {
-      this.$emit('confirmDates', value)
+    disabledDate(date) {
+      return new Date() < date
+    },
+    clear() {
+      this.$emit('clear')
     },
   },
 }

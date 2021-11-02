@@ -1,10 +1,10 @@
 <template>
   <div>
     <div class="navigation">
-      <Datapicker @confirmDates="confirmDates" v-model="dates" />
+      <Datapicker v-model="dates" @clear="clearCalendar" />
       <Tabs :tabsItems="cryptoCoin" @actionBtn="getCrypto" />
     </div>
-    <Chart :datasets="datasets" :labels="labels" v-if="loading" :labelCrypto="labelCrypto"></Chart>
+    <Chart :datasets="datasets" :labels="labels" :labelCrypto="labelCrypto"></Chart>
   </div>
 </template>
 
@@ -13,6 +13,7 @@ import { DateTime } from 'luxon'
 import Chart from '@/components/Chart/Chart'
 import Tabs from '~/components/Tabs.vue'
 import Datapicker from '~/components/Datapicker.vue'
+
 export default {
   components: { Chart, Tabs, Datapicker },
   data() {
@@ -24,7 +25,6 @@ export default {
         marginLeft: '-20px',
       },
       dates: [],
-      loading: false,
       bitcon: [],
       labels: [],
       datasets: [],
@@ -66,23 +66,19 @@ export default {
       return '5m'
     },
     diffDays() {
-      const timeDiff = Math.abs(
-        new Date(this.formadDates[0]).getTime() -
-          new Date(this.formadDates[1]).getTime()
-      )
-      return Math.ceil(timeDiff / (1000 * 3600 * 24))
+      const timeDiff = this.formadDates[1] - this.formadDates[0]
+      return Math.ceil(timeDiff / (24 * 60 * 60))
     },
     formadDates() {
-      return this.dates.map((item) => {
-        console.log(new Date(item).getTime() / 1000)
-        return item
-      })
+      if (this.dates.length) {
+        const date = this.dates.map((item) => item / 1000)
+        date[1] = date[1] + 60 * 60 * 24 - 1
+        return date
+      }
+      return []
     },
   },
   methods: {
-    confirmDates(value) {
-      this.dates = value
-    },
     // иницилизурем валюты
     async initCryptoCoin() {
       const response = await this.$axios.$get(
@@ -98,16 +94,14 @@ export default {
     },
     // иницилизурем график с криптой
     async initCrypto(name = 'btc-bitcoin') {
-      this.loading = false
-      const prevDay = DateTime.now()
-      let prevD = prevDay.minus({ days: 1 })
-      console.log()
+      const startDay = (new Date().setHours(0, 0, 0, 0) / 1000).toFixed()
+      const [from = startDay, to] = this.formadDates
       const result = await this.$axios.$get(
         `https://api.coinpaprika.com/v1/tickers/${name}/historical`,
         {
           params: {
-            start: this.formadDates[0] || (prevD.ts / 1000).toFixed(),
-            end: this.formadDates[1],
+            start: from,
+            end: to,
             limit: 5000,
             quote: 'usd',
             interval: this.interval || '5m',
@@ -137,9 +131,11 @@ export default {
           pointHoverBorderColor: 'rgba(56, 181, 84, 1)',
         },
       ]
-      this.loading = true
     },
-
+    clearCalendar() {
+      this.formadDates[0] = (new Date().setHours(0, 0, 0, 0) / 1000).toFixed()
+      console.log(this.formadDates)
+    },
     getCrypto(id) {
       this.currentIdCrypto = id
       this.initCrypto(id)
